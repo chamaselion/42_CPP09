@@ -160,31 +160,103 @@ void validate_input_line(const std::string &line, int line_number)
 }
 }
 
-BitcoinExchange::BitcoinExchange() {std::cout << "you shall not be using this\n";}
+BitcoinExchange::BitcoinExchange() {}
+
+void BitcoinExchange::fill_db()
+{
+	const std::string db_file = "data.csv";
+	std::ifstream input(db_file.c_str());
+	if (!input.is_open())
+		throw FileOpenException("Error: could not open database file: " + db_file);
+
+	_db.clear();
+
+	std::string line;
+	int line_number = 0;
+	if (!std::getline(input, line))
+		throw BadInputException("Error: database file is empty");
+	++line_number;
+
+	if (trim(line) != "date,exchange_rate")
+		throw BadInputException("Error: invalid database header");
+
+	while (std::getline(input, line))
+	{
+		++line_number;
+		if (trim(line).empty())
+			throw BadInputException("Error: empty database line at line " + to_string_int(line_number));
+
+		std::string::size_type comma_pos = line.find(',');
+		if (comma_pos == std::string::npos || line.find(',', comma_pos + 1) != std::string::npos)
+			throw BadInputException("Error: invalid database line format at line " +
+				to_string_int(line_number) +
+				": " + line);
+
+		std::string date = trim(line.substr(0, comma_pos));
+		std::string value = trim(line.substr(comma_pos + 1));
+
+		validate_date(date, line_number);
+		_db[date] = parse_double_value(value, line_number);
+	}
+
+}
+
+void BitcoinExchange::print_all(std::string file)
+{
+	std::ifstream input(file.c_str());
+	if (!input.is_open())
+		throw FileOpenException("Error: could not open input file: " + file);
+
+	std::string line;
+	if (!std::getline(input, line))
+		throw BadInputException("Error: input file is empty");
+
+	while (std::getline(input, line))
+	{
+		if (trim(line).empty())
+			continue;
+
+		std::string::size_type pipe_pos = line.find('|');
+		std::string date = trim(line.substr(0, pipe_pos));
+		std::string amount_token = trim(line.substr(pipe_pos + 1));
+		double amount = parse_amount(amount_token, 0);
+
+		std::map<std::string, double>::iterator it = _db.lower_bound(date);
+		if (it == _db.end() || it->first != date)
+		{
+			if (it == _db.begin())
+				throw BadInputException("Error: no exchange rate available for date " + date);
+			--it;
+		}
+
+		double result = amount * it->second;
+		std::cout << date << " => " << amount_token << " = " << result << std::endl;
+	}
+}
 
 BitcoinExchange::BitcoinExchange(std::string file)
 {
 	validate(file);
+	fill_db();
+	print_all(file);
 }
 
 BitcoinExchange::BitcoinExchange(const BitcoinExchange& other)
 {
-	(void)other;
-	std::cout << "BitcoinExchange copy constructor called\n";
+	*this = other;
 }
 
 BitcoinExchange& BitcoinExchange::operator=(const BitcoinExchange& other)
 {
 	if (this != &other)
 	{
+		_db = other._db;
 	}
-	std::cout << "BitcoinExchange assignment operator called\n";
 	return *this;
 }
 
 BitcoinExchange::~BitcoinExchange()
 {
-	std::cout << "BitcoinExchange destructor called\n";
 }
 
 void validate_db(std::string db_file)

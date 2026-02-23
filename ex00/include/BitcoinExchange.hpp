@@ -1,5 +1,5 @@
-#ifndef BITCOINExchange_HPP
-#define BITCOINExchange_HPP
+#ifndef BITCOINEXCHANGE_HPP
+#define BITCOINEXCHANGE_HPP
 
 #include <iostream>
 #include <algorithm>
@@ -21,8 +21,10 @@ public:
 	BitcoinExchange& operator=(const BitcoinExchange& other);
 	~BitcoinExchange();
 	
+	void fill_db();
+	double look_up_stuff(std::string stuff);
 	void process_file(std::string file);
-	void print_all(std::map<std::string, double> &db);
+	void print_all(std::string file);
 };
 
 #endif
