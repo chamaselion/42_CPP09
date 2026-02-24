@@ -6,9 +6,8 @@
 #include <cerrno>
 #include <cmath>
 #include <cctype>
+#include <algorithm>
 
-namespace
-{
 class ValidationException : public std::runtime_error
 {
 public:
@@ -144,22 +143,6 @@ double parse_double_value(const std::string &raw_value, int line_number)
 	return parsed;
 }
 
-void validate_input_line(const std::string &line, int line_number)
-{
-	std::string::size_type pipe_pos = line.find('|');
-	if (pipe_pos == std::string::npos || line.find('|', pipe_pos + 1) != std::string::npos)
-		throw BadInputException("Error: invalid line format at line " +
-			to_string_int(line_number) +
-			": " + line);
-
-	std::string date = trim(line.substr(0, pipe_pos));
-	std::string amount = trim(line.substr(pipe_pos + 1));
-
-	validate_date(date, line_number);
-	parse_amount(amount, line_number);
-}
-}
-
 BitcoinExchange::BitcoinExchange() {}
 
 void BitcoinExchange::fill_db()
@@ -213,24 +196,54 @@ void BitcoinExchange::print_all(std::string file)
 
 	while (std::getline(input, line))
 	{
-		if (trim(line).empty())
+		std::string trimmed = trim(line);
+		if (trimmed.empty())
 			continue;
 
-		std::string::size_type pipe_pos = line.find('|');
-		std::string date = trim(line.substr(0, pipe_pos));
-		std::string amount_token = trim(line.substr(pipe_pos + 1));
-		double amount = parse_amount(amount_token, 0);
-
-		std::map<std::string, double>::iterator it = _db.lower_bound(date);
-		if (it == _db.end() || it->first != date)
+		try
 		{
-			if (it == _db.begin())
-				throw BadInputException("Error: no exchange rate available for date " + date);
-			--it;
-		}
+			std::string::iterator pipe_iter = std::find(line.begin(), line.end(), '|');
+			if (pipe_iter == line.end())
+				throw BadInputException("");
 
-		double result = amount * it->second;
-		std::cout << date << " => " << amount_token << " = " << result << std::endl;
+			std::string::size_type pipe_pos = pipe_iter - line.begin();
+			if (std::find(pipe_iter + 1, line.end(), '|') != line.end())
+				throw BadInputException("");
+
+			std::string date = trim(line.substr(0, pipe_pos));
+			std::string amount_token = trim(line.substr(pipe_pos + 1));
+
+			double amount = parse_amount(amount_token, 0);
+
+			std::map<std::string, double>::iterator it = _db.lower_bound(date);
+			if (it == _db.end() || it->first != date)
+			{
+				if (it == _db.begin())
+					throw BadInputException("");
+				--it;
+			}
+
+			double result = amount * it->second;
+			std::cout << date << " => " << amount_token << " = " << result << std::endl;
+		}
+		catch (const InvalidValueException &e)
+		{
+			std::string msg = e.what();
+			if (msg.find("exceeds max") != std::string::npos)
+				std::cout << "Error: too large a number." << std::endl;
+			else if (msg.find("non-negative") != std::string::npos)
+				std::cout << "Error: not a positive number." << std::endl;
+			else
+				std::cout << "Error: bad input => " << trimmed << std::endl;
+		}
+		catch (const InvalidDateException &)
+		{
+			std::cout << "Error: bad input => " << trimmed << std::endl;
+		}
+		catch (const BadInputException &)
+		{
+			std::cout << "Error: bad input => " << trimmed << std::endl;
+		}
 	}
 }
 
@@ -297,36 +310,10 @@ void validate_db(std::string db_file)
 	}
 
 }
-void validate_inp(std::string inp_file)
-{
-	std::ifstream input(inp_file.c_str());
-	if (!input.is_open())
-		throw FileOpenException("Error: could not open input file: " + inp_file);
-
-	std::string line;
-	int line_number = 0;
-	if (!std::getline(input, line))
-		throw BadInputException("Error: input file is empty");
-	++line_number;
-
-	std::string first = trim(line);
-	if (first != "date | value" && first != "date | amount_of_btc")
-		validate_input_line(line, line_number);
-
-	while (std::getline(input, line))
-	{
-		++line_number;
-		if (trim(line).empty())
-			throw BadInputException("Error: empty line at line " + to_string_int(line_number));
-		validate_input_line(line, line_number);
-	}
-
-}
 
 void BitcoinExchange::validate(std::string inp_file)
 {
+	(void)inp_file;
 	std::string db_file = "data.csv";
 	validate_db(db_file);
-	validate_inp(inp_file);
-
 }
