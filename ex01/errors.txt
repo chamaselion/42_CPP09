@@ -1,0 +1,49 @@
+ERROR REPORT - ex01 (RPN / Reverse Polish Notation)
+====================================================
+Program: RPN
+Compiled with: c++ -Wall -Wextra -Werror -std=c++98
+
+
+SUMMARY OF TESTS RUN
+--------------------
+All tests produced correct and expected results.
+
+- No arguments:                     PASS (exits 1, "Error: invalid number of arguments")
+- Basic addition "1 2 +":           PASS (output: 3)
+- Basic subtraction "5 3 -":        PASS (output: 2)
+- Basic multiplication "3 4 *":     PASS (output: 12)
+- Basic division "10 2 /":          PASS (output: 5)
+- Complex expression "3 4 + 2 *":   PASS (output: 14)
+- Subject example 1 "8 9 * 9 - 9 - 9 - 4 - 1 +": PASS (output: 42)
+- Subject example 2 "7 7 * 7 -":    PASS (output: 42)
+- Subject example 3 "1 2 * 2 / 2 * 2 4 - +": PASS (output: 0)
+- Division by zero "5 0 /":         PASS (exits 1, "Error: division by zero")
+- Insufficient operands "1 +":      PASS (exits 1, "Error: insufficient operands")
+- Invalid token "a b +":            PASS (exits 1, "Error: invalid token")
+- Empty expression "":              PASS (exits 1, "Error: invalid expression")
+- Extra operand "1 2 3 +":          PASS (exits 1, "Error: invalid expression")
+
+
+NOTES (NOT ERRORS - BEHAVIORAL OBSERVATIONS)
+--------------------------------------------
+1. Multi-digit numbers are accepted as operands. The 42 subject implies
+   that all values in the expression are less than 10, but the code does
+   not enforce this restriction. For example:
+     ./RPN "10 2 +"  => output: 12
+   This is NOT considered an error since the subject's constraint is about
+   typical input, not a hard requirement.
+
+2. Negative numbers (e.g., "-1") are accepted as tokens and treated as
+   negative operands:
+     ./RPN "-1 2 +"  => output: 1
+   This may or may not be intended behavior depending on interpretation
+   of the subject.
+
+3. Decimal numbers (e.g., "1.5") are accepted as operands:
+     ./RPN "1.5 2 +"  => output: 3.5
+   Again, not necessarily an error, but a behavioral note.
+
+
+NO ERRORS FOUND
+---------------
+All tested scenarios produced correct results.

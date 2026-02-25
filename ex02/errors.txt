@@ -1,0 +1,60 @@
+ERROR REPORT - ex02 (PmergeMe / Merge-Insert Sort)
+===================================================
+Program: PmergeMe
+Compiled with: c++ -Wall -Wextra -Werror -std=c++98
+
+
+ERROR 1: Only one container is used (std::vector only)
+-------------------------------------------------------
+Description:
+  The 42 CPP09 subject requires implementing the Ford-Johnson
+  merge-insert sort using AT LEAST TWO DIFFERENT container types
+  (e.g., std::vector and std::deque), and displaying the processing
+  time for each container separately.
+
+  The current implementation uses ONLY std::vector throughout:
+    - PmergeMe.hpp only includes <vector>
+    - fordJohnsonSort() only takes std::vector<int>
+    - run() only creates and sorts a std::vector<int>
+
+  Expected output format per subject:
+    Before: 3 5 9 7 4
+    After:  3 4 5 7 9
+    Time to process a range of 5 elements with std::vector : X us
+    Time to process a range of 5 elements with std::deque  : Y us
+
+  Actual output:
+    Before: 3 5 9 7 4
+    After:  3 4 5 7 9
+    Time to process a range of 5 elements with std::vector : 9 us
+    (second container line is MISSING)
+
+
+SORT CORRECTNESS
+----------------
+Despite the missing second container, the sorting algorithm itself
+is correct. The Ford-Johnson algorithm was verified with 50 random
+test sequences of sizes 1-30 with values 1-1000, and all produced
+results identical to std::sort.
+
+Additional sort correctness tests:
+- Already sorted sequence:  PASS (1 2 3 4 5 => 1 2 3 4 5)
+- Reverse sorted sequence:  PASS (20 19 ... 1 => 1 2 ... 20)
+- Sequence with duplicates: PASS (3 3 1 => 1 3 3)
+- Single element:           PASS (42 => 42)
+- Two elements:             PASS (2 1 => 1 2)
+
+
+SUMMARY OF TESTS RUN
+--------------------
+- No arguments:             PASS (exits 1, "Error: no input sequence provided")
+- Negative number (-1):     PASS (exits 1, "Error: invalid character in input")
+- Zero (0):                 PASS (exits 1, "Error: only positive integers are allowed")
+- Non-numeric (abc):        PASS (exits 1, "Error: invalid character in input")
+- Float (1.5):              PASS (exits 1, "Error: invalid character in input")
+- Small sequence (5 elems): PASS (sorts correctly)
+- Large sequence (20 elems):PASS (sorts correctly)
+- INT_MAX value:            PASS (2147483647 accepted, sorts correctly)
+- Duplicate values:         PASS (sorts correctly preserving duplicates)
+- Already sorted input:     PASS (output matches input)
+- Second container output:  FAIL (see ERROR 1 - missing deque implementation)
