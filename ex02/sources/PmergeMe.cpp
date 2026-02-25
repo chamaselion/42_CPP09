@@ -5,6 +5,7 @@
 #include <climits>
 #include <ctime>
 #include <cstdlib>
+#include <deque>
 #include <exception>
 #include <iostream>
 #include <stdexcept>
@@ -13,6 +14,32 @@
 namespace
 {
 	void buildJacobsthalInsertionOrder(std::size_t pairCount, std::vector<std::size_t> &order)
+	{
+		order.clear();
+		if (pairCount <= 1)
+			return;
+
+		std::size_t processed = 1;
+		std::size_t jacobPrev = 1;
+		std::size_t jacobCurr = 3;
+
+		while (processed < pairCount)
+		{
+			std::size_t blockEnd = jacobCurr;
+			if (blockEnd > pairCount)
+				blockEnd = pairCount;
+
+			for (std::size_t i = blockEnd; i > processed; --i)
+				order.push_back(i - 1);
+
+			processed = jacobCurr;
+			std::size_t jacobNext = jacobCurr + 2 * jacobPrev;
+			jacobPrev = jacobCurr;
+			jacobCurr = jacobNext;
+		}
+	}
+
+	void buildJacobsthalInsertionOrderDeque(std::size_t pairCount, std::deque<std::size_t> &order)
 	{
 		order.clear();
 		if (pairCount <= 1)
@@ -131,6 +158,98 @@ namespace
 				seq[dst + j] = tmp[src + j];
 		}
 	}
+
+	void fordJohnsonRecurseDeque(std::deque<int> &seq,
+								 std::size_t elemCount,
+								 std::size_t groupSize)
+	{
+		std::size_t groupCount = elemCount / groupSize;
+		if (groupCount < 2)
+			return;
+
+		std::size_t pairCount = groupCount / 2;
+		bool hasStraggler = (groupCount % 2 != 0);
+
+		for (std::size_t i = 0; i < pairCount; ++i)
+		{
+			std::size_t left  = 2 * i * groupSize;
+			std::size_t right = (2 * i + 1) * groupSize;
+			if (seq[left + groupSize - 1] > seq[right + groupSize - 1])
+			{
+				for (std::size_t j = 0; j < groupSize; ++j)
+					std::swap(seq[left + j], seq[right + j]);
+			}
+		}
+
+		fordJohnsonRecurseDeque(seq, pairCount * 2 * groupSize, groupSize * 2);
+
+		std::deque<std::size_t> chain;
+		chain.push_back(0);
+		for (std::size_t i = 0; i < pairCount; ++i)
+			chain.push_back((2 * i + 1) * groupSize);
+
+		std::deque<std::size_t> pend;
+		for (std::size_t i = 1; i < pairCount; ++i)
+			pend.push_back(2 * i * groupSize);
+
+		std::deque<std::size_t> insertionOrder;
+		buildJacobsthalInsertionOrderDeque(pairCount, insertionOrder);
+
+		for (std::size_t j = 0; j < insertionOrder.size(); ++j)
+		{
+			std::size_t pairIdx   = insertionOrder[j];
+			std::size_t pendStart = pend[pairIdx - 1];
+			int value = seq[pendStart + groupSize - 1];
+
+			std::size_t winnerStart = (2 * pairIdx + 1) * groupSize;
+			std::size_t bound = 0;
+			for (std::size_t k = 0; k < chain.size(); ++k)
+			{
+				if (chain[k] == winnerStart)
+				{
+					bound = k;
+					break;
+				}
+			}
+
+			std::size_t lo = 0, hi = bound;
+			while (lo < hi)
+			{
+				std::size_t mid = lo + (hi - lo) / 2;
+				if (seq[chain[mid] + groupSize - 1] < value)
+					lo = mid + 1;
+				else
+					hi = mid;
+			}
+			chain.insert(chain.begin() + static_cast<long>(lo), pendStart);
+		}
+
+		if (hasStraggler)
+		{
+			std::size_t stragglerStart = pairCount * 2 * groupSize;
+			int value = seq[stragglerStart + groupSize - 1];
+			std::size_t lo = 0, hi = chain.size();
+			while (lo < hi)
+			{
+				std::size_t mid = lo + (hi - lo) / 2;
+				if (seq[chain[mid] + groupSize - 1] < value)
+					lo = mid + 1;
+				else
+					hi = mid;
+			}
+			chain.insert(chain.begin() + static_cast<long>(lo), stragglerStart);
+		}
+
+		std::deque<int> tmp(seq.begin(),
+						   seq.begin() + static_cast<long>(elemCount));
+		for (std::size_t i = 0; i < chain.size(); ++i)
+		{
+			std::size_t dst = i * groupSize;
+			std::size_t src = chain[i];
+			for (std::size_t j = 0; j < groupSize; ++j)
+				seq[dst + j] = tmp[src + j];
+		}
+	}
 }
 
 PmergeMe::PmergeMe() {}
@@ -196,6 +315,17 @@ void PmergeMe::printSequence(const std::vector<int> &sequence)
 	std::cout << std::endl;
 }
 
+void PmergeMe::printSequence(const std::deque<int> &sequence)
+{
+	for (std::deque<int>::const_iterator it = sequence.begin(); it != sequence.end(); ++it)
+	{
+		if (it != sequence.begin())
+			std::cout << ' ';
+		std::cout << *it;
+	}
+	std::cout << std::endl;
+}
+
 void PmergeMe::fordJohnsonSort(std::vector<int> &sequence)
 {
 	if (sequence.size() <= 1)
@@ -203,9 +333,17 @@ void PmergeMe::fordJohnsonSort(std::vector<int> &sequence)
 	fordJohnsonRecurse(sequence, sequence.size(), 1);
 }
 
+void PmergeMe::fordJohnsonSort(std::deque<int> &sequence)
+{
+	if (sequence.size() <= 1)
+		return;
+	fordJohnsonRecurseDeque(sequence, sequence.size(), 1);
+}
+
 void PmergeMe::run(int argc, char **argv)
 {
 	std::vector<int> sequence = parseArgs(argc, argv);
+	std::deque<int> sequenceDeque(sequence.begin(), sequence.end());
 	std::vector<int> original(sequence);
 
 	std::cout << "Before: ";
@@ -221,9 +359,22 @@ void PmergeMe::run(int argc, char **argv)
 			(static_cast<double>(endTime - startTime) * 1000000.0) /
 			static_cast<double>(CLOCKS_PER_SEC);
 
+	std::clock_t startTimeDeque = std::clock();
+	fordJohnsonSort(sequenceDeque);
+	std::clock_t endTimeDeque = std::clock();
+
+	double elapsedMicrosecondsDeque = 0.0;
+	if (endTimeDeque >= startTimeDeque)
+		elapsedMicrosecondsDeque =
+			(static_cast<double>(endTimeDeque - startTimeDeque) * 1000000.0) /
+			static_cast<double>(CLOCKS_PER_SEC);
+
 	std::cout << "After:  ";
 	printSequence(sequence);
 	std::cout << "Time to process a range of " << sequence.size()
 			  << " elements with std::vector : "
 			  << elapsedMicroseconds << " us" << std::endl;
+	std::cout << "Time to process a range of " << sequenceDeque.size()
+			  << " elements with std::deque  : "
+			  << elapsedMicrosecondsDeque << " us" << std::endl;
 }
