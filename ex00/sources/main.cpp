@@ -6,7 +6,8 @@ int main(int ac, char **av)
 {
 	if (ac != 2)
 	{
-		std::cerr << "Error: could not open file." << std::endl;
+		std::cerr << "Error: wrong number of arguments." << std::endl;
+		std::cerr << "Usage: " << av[0] << " <input_file>" << std::endl;
 		return 1;
 	}
 

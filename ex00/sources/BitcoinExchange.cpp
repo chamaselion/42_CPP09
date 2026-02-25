@@ -80,7 +80,7 @@ void validate_date(const std::string &date, int line_number)
 	int month = std::atoi(date.substr(5, 2).c_str());
 	int day = std::atoi(date.substr(8, 2).c_str());
 
-	if (year < 1 || month < 1 || month > 12)
+	if (year < 1 || year > 2026 || month < 1 || month > 12)
 		throw InvalidDateException("Error: invalid date at line " +
 			to_string_int(line_number) +
 			": " + date);
@@ -213,6 +213,7 @@ void BitcoinExchange::print_all(std::string file)
 			std::string date = trim(line.substr(0, pipe_pos));
 			std::string amount_token = trim(line.substr(pipe_pos + 1));
 
+			validate_date(date, 0);
 			double amount = parse_amount(amount_token, 0);
 
 			std::map<std::string, double>::iterator it = _db.lower_bound(date);
