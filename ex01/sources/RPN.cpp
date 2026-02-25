@@ -28,7 +28,13 @@ bool is_number(const std::string &token)
 	std::istringstream iss(trimmed);
 	double value;
 	char remaining;
-	return (iss >> value) && !(iss >> remaining);
+	if ((iss >> value) && !(iss >> remaining))
+	{
+		// if (value < 0 || value >= 10)
+		// 	return false;
+		return true;
+	}
+	return false;
 }
 
 bool is_operator(const std::string &token)
@@ -93,6 +99,8 @@ void RPN::evaluate(const std::string &expression)
 			double value;
 			if (!(num_stream >> value))
 				throw RPNException("Error: invalid number");
+			if (value < 0 || value >= 10)
+				throw RPNException("Error: number must be between 0 and 9");
 			_stack.push(value);
 		}
 		else if (is_operator(token))
