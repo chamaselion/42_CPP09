@@ -15,6 +15,7 @@ namespace
 {
 	void buildJacobsthalInsertionOrder(std::size_t pairCount, std::vector<std::size_t> &order)
 	{
+		// [JACOBSTHAL SECTION 0] Initialization and trivial-case guard
 		order.clear();
 		if (pairCount <= 1)
 			return;
@@ -23,15 +24,18 @@ namespace
 		std::size_t jacobPrev = 1;
 		std::size_t jacobCurr = 3;
 
+		// [JACOBSTHAL SECTION 1] Build reverse blocks delimited by Jacobsthal values
 		while (processed < pairCount)
 		{
 			std::size_t blockEnd = jacobCurr;
 			if (blockEnd > pairCount)
 				blockEnd = pairCount;
 
+			// [JACOBSTHAL SECTION 2] Emit current block in reverse index order
 			for (std::size_t i = blockEnd; i > processed; --i)
 				order.push_back(i - 1);
 
+			// [JACOBSTHAL SECTION 3] Advance Jacobsthal window
 			processed = jacobCurr;
 			std::size_t jacobNext = jacobCurr + 2 * jacobPrev;
 			jacobPrev = jacobCurr;
@@ -41,6 +45,7 @@ namespace
 
 	void buildJacobsthalInsertionOrderDeque(std::size_t pairCount, std::deque<std::size_t> &order)
 	{
+		// [JACOBSTHAL SECTION 0] Initialization and trivial-case guard
 		order.clear();
 		if (pairCount <= 1)
 			return;
@@ -49,15 +54,18 @@ namespace
 		std::size_t jacobPrev = 1;
 		std::size_t jacobCurr = 3;
 
+		// [JACOBSTHAL SECTION 1] Build reverse blocks delimited by Jacobsthal values
 		while (processed < pairCount)
 		{
 			std::size_t blockEnd = jacobCurr;
 			if (blockEnd > pairCount)
 				blockEnd = pairCount;
 
+			// [JACOBSTHAL SECTION 2] Emit current block in reverse index order
 			for (std::size_t i = blockEnd; i > processed; --i)
 				order.push_back(i - 1);
 
+			// [JACOBSTHAL SECTION 3] Advance Jacobsthal window
 			processed = jacobCurr;
 			std::size_t jacobNext = jacobCurr + 2 * jacobPrev;
 			jacobPrev = jacobCurr;
@@ -69,6 +77,7 @@ namespace
 							std::size_t elemCount,
 							std::size_t groupSize)
 	{
+		// [SECTION 0] Base case and level metadata
 		std::size_t groupCount = elemCount / groupSize;
 		if (groupCount < 2)
 			return;
@@ -76,6 +85,7 @@ namespace
 		std::size_t pairCount = groupCount / 2;
 		bool hasStraggler = (groupCount % 2 != 0);
 
+		// [SECTION 1] Pair normalization (ensure b_i <= a_i by representative)
 		for (std::size_t i = 0; i < pairCount; ++i)
 		{
 			std::size_t left  = 2 * i * groupSize;
@@ -87,8 +97,10 @@ namespace
 			}
 		}
 
+		// [SECTION 2] Recurse on winners at doubled group size
 		fordJohnsonRecurse(seq, pairCount * 2 * groupSize, groupSize * 2);
 
+		// [SECTION 3] Build main chain and pending losers
 		std::vector<std::size_t> chain;
 		chain.reserve(groupCount);
 		chain.push_back(0);
@@ -103,6 +115,7 @@ namespace
 		std::vector<std::size_t> insertionOrder;
 		buildJacobsthalInsertionOrder(pairCount, insertionOrder);
 
+		// [SECTION 4] Insert pending losers with bounded binary search
 		for (std::size_t j = 0; j < insertionOrder.size(); ++j)
 		{
 			std::size_t pairIdx   = insertionOrder[j];
@@ -132,6 +145,7 @@ namespace
 			chain.insert(chain.begin() + static_cast<long>(lo), pendStart);
 		}
 
+		// [SECTION 5] Insert straggler group (if present)
 		if (hasStraggler)
 		{
 			std::size_t stragglerStart = pairCount * 2 * groupSize;
@@ -148,6 +162,7 @@ namespace
 			chain.insert(chain.begin() + static_cast<long>(lo), stragglerStart);
 		}
 
+		// [SECTION 6] Materialize chain order into current segment
 		std::vector<int> tmp(seq.begin(),
 							 seq.begin() + static_cast<long>(elemCount));
 		for (std::size_t i = 0; i < chain.size(); ++i)
@@ -163,6 +178,7 @@ namespace
 								 std::size_t elemCount,
 								 std::size_t groupSize)
 	{
+		// [SECTION 0] Base case and level metadata
 		std::size_t groupCount = elemCount / groupSize;
 		if (groupCount < 2)
 			return;
@@ -170,6 +186,7 @@ namespace
 		std::size_t pairCount = groupCount / 2;
 		bool hasStraggler = (groupCount % 2 != 0);
 
+		// [SECTION 1] Pair normalization (ensure b_i <= a_i by representative)
 		for (std::size_t i = 0; i < pairCount; ++i)
 		{
 			std::size_t left  = 2 * i * groupSize;
@@ -181,8 +198,10 @@ namespace
 			}
 		}
 
+		// [SECTION 2] Recurse on winners at doubled group size
 		fordJohnsonRecurseDeque(seq, pairCount * 2 * groupSize, groupSize * 2);
 
+		// [SECTION 3] Build main chain and pending losers
 		std::deque<std::size_t> chain;
 		chain.push_back(0);
 		for (std::size_t i = 0; i < pairCount; ++i)
@@ -195,6 +214,7 @@ namespace
 		std::deque<std::size_t> insertionOrder;
 		buildJacobsthalInsertionOrderDeque(pairCount, insertionOrder);
 
+		// [SECTION 4] Insert pending losers with bounded binary search
 		for (std::size_t j = 0; j < insertionOrder.size(); ++j)
 		{
 			std::size_t pairIdx   = insertionOrder[j];
@@ -224,6 +244,7 @@ namespace
 			chain.insert(chain.begin() + static_cast<long>(lo), pendStart);
 		}
 
+		// [SECTION 5] Insert straggler group (if present)
 		if (hasStraggler)
 		{
 			std::size_t stragglerStart = pairCount * 2 * groupSize;
@@ -240,6 +261,7 @@ namespace
 			chain.insert(chain.begin() + static_cast<long>(lo), stragglerStart);
 		}
 
+		// [SECTION 6] Materialize chain order into current segment
 		std::deque<int> tmp(seq.begin(),
 						   seq.begin() + static_cast<long>(elemCount));
 		for (std::size_t i = 0; i < chain.size(); ++i)
