@@ -1,0 +1,58 @@
+SUGGESTIONS TO FIX ERRORS - ex02 (PmergeMe / Merge-Insert Sort)
+================================================================
+NOTE: These are suggestions only. No code changes have been made.
+      This file is separate from errors.txt per the problem requirements.
+
+
+SUGGESTION 1: Add a second container (std::deque) implementation (fixes ERROR 1)
+---------------------------------------------------------------------------------
+The 42 subject requires demonstrating the Ford-Johnson algorithm on two
+different containers and comparing their timing.
+
+Steps to implement:
+
+1. In PmergeMe.hpp:
+   - Add #include <deque>
+   - Add a static fordJohnsonSortDeque(std::deque<int> &sequence) method
+
+2. In PmergeMe.cpp:
+   - Implement a version of fordJohnsonRecurse that operates on
+     std::deque<int> instead of std::vector<int> (the logic is the same,
+     only the container type changes).
+   - Alternatively, refactor fordJohnsonRecurse to be a template function
+     that works with any random-access container.
+
+3. In PmergeMe::run():
+   - After sorting with vector, create a std::deque<int> from the original
+     input and sort it with the deque version.
+   - Measure the time for the deque sort separately.
+   - Print both time lines:
+       std::cout << "Time to process a range of " << sequence.size()
+                 << " elements with std::vector : "
+                 << vectorMicroseconds << " us" << std::endl;
+       std::cout << "Time to process a range of " << dequeSequence.size()
+                 << " elements with std::deque  : "
+                 << dequeMicroseconds << " us" << std::endl;
+
+Example run() pseudocode:
+    std::vector<int> vecSeq = parseArgs(argc, argv);
+    std::vector<int> original(vecSeq);
+    std::deque<int> deqSeq(vecSeq.begin(), vecSeq.end());
+
+    std::cout << "Before: "; printSequence(original);
+
+    std::clock_t t1 = std::clock();
+    fordJohnsonSort(vecSeq);           // sort vector
+    std::clock_t t2 = std::clock();
+    fordJohnsonSortDeque(deqSeq);      // sort deque
+    std::clock_t t3 = std::clock();
+
+    std::cout << "After:  "; printSequence(vecSeq);
+
+    double vecUs = (t2 - t1) * 1e6 / CLOCKS_PER_SEC;
+    double deqUs = (t3 - t2) * 1e6 / CLOCKS_PER_SEC;
+
+    std::cout << "Time to process a range of " << vecSeq.size()
+              << " elements with std::vector : " << vecUs << " us\n";
+    std::cout << "Time to process a range of " << deqSeq.size()
+              << " elements with std::deque  : " << deqUs << " us\n";

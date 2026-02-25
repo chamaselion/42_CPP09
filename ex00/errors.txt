@@ -1,0 +1,96 @@
+ERROR REPORT - ex00 (btc / BitcoinExchange)
+============================================
+Program: btc
+Compiled with: c++ -Wall -Wextra -Werror -std=c++98
+
+
+ERROR 1: Input file dates are NOT validated
+-------------------------------------------
+Description:
+  Dates in the input file are never passed through validate_date().
+  This means malformed date strings are silently accepted and processed
+  via std::map::lower_bound string comparison, producing wrong results
+  instead of error messages.
+
+Test cases that expose this:
+  Input line: "2020-13-01 | 1.0"   (invalid month 13)
+    Actual output:   2020-13-01 => 1.0 = 28856.6
+    Expected output: Error: bad input => 2020-13-01 | 1.0
+
+  Input line: "2020-02-30 | 1.0"   (day 30 does not exist in February)
+    Actual output:   2020-02-30 => 1.0 = 8712.35
+    Expected output: Error: bad input => 2020-02-30 | 1.0
+
+  Input line: "2011/09/14 | 1.0"   (slashes instead of dashes)
+    Actual output:   2011/09/14 => 1.0 = 4.47
+    Expected output: Error: bad input => 2011/09/14 | 1.0
+
+
+ERROR 2: Misleading error message when wrong number of arguments is given
+-------------------------------------------------------------------------
+Description:
+  When called with 0 arguments or 3+ arguments, the program prints:
+    "Error: could not open file."
+  This message is misleading because the problem is the wrong number
+  of arguments, not a missing or unreadable file.
+
+Test cases:
+  Command: ./btc
+    Actual output:   Error: could not open file.
+    Expected output: Error: wrong number of arguments (or similar usage error)
+
+  Command: ./btc file1 file2
+    Actual output:   Error: could not open file.
+    Expected output: Error: wrong number of arguments (or similar usage error)
+
+
+ERROR 3: Date before database range produces only a generic error
+-----------------------------------------------------------------
+Description:
+  A valid date that predates the earliest entry in data.csv (2009-01-02)
+  causes the lookup to fail silently and produces "Error: bad input" with
+  no indication that the date itself is valid but simply has no matching
+  exchange rate in the database.
+
+Test case:
+  Input line: "2005-02-02 | 0.1"
+    Actual output:   Error: bad input => 2005-02-02 | 0.1
+    Note: The date 2005-02-02 is valid, but predates the database.
+          The error message gives no clue about why it failed.
+          The subject example shows this same generic "bad input" message,
+          so this may be acceptable per spec, but it is ambiguous.
+
+
+UNEXPECTED RESULT 1: Future dates silently use last known exchange rate
+-----------------------------------------------------------------------
+Description:
+  Dates beyond the database's latest entry (2022-03-29) are processed
+  without any error or warning. The lower_bound lookup returns end(),
+  then the code decrements to the last entry and uses that rate.
+
+Test case:
+  Input line: "2023-01-01 | 1.0"
+    Actual output:   2023-01-01 => 1.0 = 47115.9
+    (uses the last database rate from 2022-03-29)
+    Expected: possibly a warning or different handling, though
+              the subject does not explicitly define this behavior.
+
+
+SUMMARY OF TESTS RUN
+--------------------
+- No arguments:                     PASS (error message shown, exits 1)
+- Too many arguments:               PARTIAL (exits 1, but wrong message)
+- Non-existent input file:          PASS (error message shown, exits 1)
+- Valid input file (input_valid.txt): PASS (produces expected output)
+- Negative amount:                  PASS ("Error: not a positive number.")
+- Amount > 1000:                    PASS ("Error: too large a number.")
+- Zero amount:                      PASS (computes 0)
+- Amount exactly 1000:              PASS (computes correctly)
+- Date at database start:           PASS (2009-01-02 => result)
+- Date before database range:       ERROR (see ERROR 3 above)
+- Date after database range:        UNEXPECTED (see UNEXPECTED RESULT 1)
+- Invalid date in input (bad month): ERROR (see ERROR 1 above)
+- Invalid date in input (bad day):  ERROR (see ERROR 1 above)
+- Invalid date format (slashes):    ERROR (see ERROR 1 above)
+- No pipe separator in input:       PASS ("Error: bad input => ...")
+- Multiple pipes in input:          PASS ("Error: bad input => ...")

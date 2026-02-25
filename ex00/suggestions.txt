@@ -1,0 +1,70 @@
+SUGGESTIONS TO FIX ERRORS - ex00 (btc / BitcoinExchange)
+=========================================================
+NOTE: These are suggestions only. No code changes have been made.
+      This file is separate from errors.txt per the problem requirements.
+
+
+SUGGESTION 1: Validate input file dates (fixes ERROR 1)
+---------------------------------------------------------
+In the print_all() method inside BitcoinExchange.cpp, after parsing the
+date and amount_token from the input line, call validate_date() on the
+date string. If validation throws, catch it and print:
+    "Error: bad input => <original line>"
+
+Location: BitcoinExchange.cpp, inside print_all(), within the try block,
+after extracting 'date' and before calling parse_amount().
+
+Pseudocode:
+    std::string date = trim(line.substr(0, pipe_pos));
+    try {
+        validate_date(date, 0);   // <-- add this call
+    } catch (...) {
+        throw BadInputException(""); // rethrow as bad input
+    }
+    double amount = parse_amount(amount_token, 0);
+
+
+SUGGESTION 2: Fix error message for wrong argument count (fixes ERROR 2)
+-------------------------------------------------------------------------
+In main.cpp, when ac != 2, print a message that accurately reflects
+the problem: wrong number of arguments.
+
+Current code:
+    if (ac != 2)
+    {
+        std::cerr << "Error: could not open file." << std::endl;
+        return 1;
+    }
+
+Suggested change:
+    if (ac != 2)
+    {
+        std::cerr << "Error: wrong number of arguments." << std::endl;
+        return 1;
+    }
+
+
+SUGGESTION 3: Clearer error for date before database range (fixes ERROR 3)
+---------------------------------------------------------------------------
+Currently, when a valid date predates the earliest entry in the database,
+the code throws a generic BadInputException with an empty message, which
+results in "Error: bad input => <line>". This matches the subject's
+expected output format for this case, so no change is strictly required.
+
+However, if a more descriptive message is desired, in print_all(), after
+the check "if (it == _db.begin())", print a message indicating that no
+exchange rate is available for dates before the database start.
+
+Note: The subject example also shows "Error: bad input" for such cases,
+so this behavior may be intentional.
+
+
+SUGGESTION 4: Handle future dates explicitly (fixes UNEXPECTED RESULT 1)
+-------------------------------------------------------------------------
+If using the last known rate for future dates is undesired, add a check
+after the lower_bound lookup to see if the date is beyond the last
+database entry. Currently there is no such check; the code simply finds
+the closest lower or equal date by default.
+
+If desired behavior is to use the last known rate (as currently
+implemented), document this in a comment for clarity.
