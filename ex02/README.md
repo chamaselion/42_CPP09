@@ -272,3 +272,12 @@ After:  ...
 Time to process a range of N elements with std::vector : X us
 Time to process a range of N elements with std::deque  : Y us
 ```
+
+---
+
+## 10) Resources
+
+- https://hsm.stackexchange.com/questions/18457/who-first-showed-the-famous-best-worst-case-complexity-on-sorting-algorithms
+- https://arxiv.org/abs/1905.09656?utm_source=chatgpt.com
+- https://www.sciencedirect.com/science/article/abs/pii/S0020019006002742?via%3Dihub
+- https://www.jstor.org/stable/2308750
