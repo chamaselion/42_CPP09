@@ -10,6 +10,16 @@
 #include <algorithm>
 #include <exception>
 
+class RPNException : public std::exception
+{
+private:
+	std::string _message;
+public:
+	RPNException(const std::string &message);
+	virtual const char *what() const throw();
+	virtual ~RPNException() throw();
+};
+
 class RPN
 {
 private:

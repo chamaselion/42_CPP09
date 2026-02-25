@@ -1,14 +1,13 @@
 #include "RPN.hpp"
 
-class RPNException : public std::exception
+RPNException::RPNException(const std::string &message) : _message(message) {}
+
+const char *RPNException::what() const throw()
 {
-private:
-	std::string _message;
-public:
-	RPNException(const std::string &message) : _message(message) {}
-	virtual const char *what() const throw() { return _message.c_str(); }
-	virtual ~RPNException() throw() {}
-};
+	return _message.c_str();
+}
+
+RPNException::~RPNException() throw() {}
 
 std::string trim(const std::string &value)
 {
