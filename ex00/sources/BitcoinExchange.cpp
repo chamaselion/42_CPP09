@@ -1,42 +1,21 @@
 #include "BitcoinExchange.hpp"
 #include <fstream>
 #include <sstream>
-#include <stdexcept>
 #include <cstdlib>
 #include <cerrno>
 #include <cmath>
 #include <cctype>
 #include <algorithm>
 
-class ValidationException : public std::runtime_error
-{
-public:
-	ValidationException(const std::string &message) : std::runtime_error(message) {}
-};
+ValidationException::ValidationException(const std::string &message) : std::runtime_error(message) {}
 
-class FileOpenException : public ValidationException
-{
-public:
-	FileOpenException(const std::string &message) : ValidationException(message) {}
-};
+FileOpenException::FileOpenException(const std::string &message) : ValidationException(message) {}
 
-class BadInputException : public ValidationException
-{
-public:
-	BadInputException(const std::string &message) : ValidationException(message) {}
-};
+BadInputException::BadInputException(const std::string &message) : ValidationException(message) {}
 
-class InvalidDateException : public ValidationException
-{
-public:
-	InvalidDateException(const std::string &message) : ValidationException(message) {}
-};
+InvalidDateException::InvalidDateException(const std::string &message) : ValidationException(message) {}
 
-class InvalidValueException : public ValidationException
-{
-public:
-	InvalidValueException(const std::string &message) : ValidationException(message) {}
-};
+InvalidValueException::InvalidValueException(const std::string &message) : ValidationException(message) {}
 
 std::string trim(const std::string &value)
 {
