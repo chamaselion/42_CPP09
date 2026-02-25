@@ -108,12 +108,14 @@ namespace
 			chain.push_back((2 * i + 1) * groupSize);
 
 		std::vector<std::size_t> pend;
-		pend.reserve(pairCount);
+		pend.reserve(pairCount + (hasStraggler ? 1 : 0));
 		for (std::size_t i = 1; i < pairCount; ++i)
 			pend.push_back(2 * i * groupSize);
+		if (hasStraggler)
+			pend.push_back(pairCount * 2 * groupSize);
 
 		std::vector<std::size_t> insertionOrder;
-		buildJacobsthalInsertionOrder(pairCount, insertionOrder);
+		buildJacobsthalInsertionOrder(pairCount + (hasStraggler ? 1 : 0), insertionOrder);
 
 		// [SECTION 4] Insert pending losers with bounded binary search
 		for (std::size_t j = 0; j < insertionOrder.size(); ++j)
@@ -122,14 +124,19 @@ namespace
 			std::size_t pendStart = pend[pairIdx - 1];
 			int value = seq[pendStart + groupSize - 1];
 
-			std::size_t winnerStart = (2 * pairIdx + 1) * groupSize;
-			std::size_t bound = 0;
-			for (std::size_t k = 0; k < chain.size(); ++k)
+			bool isStragglerPair = hasStraggler && pairIdx == pairCount;
+			std::size_t bound = chain.size();
+			if (!isStragglerPair)
 			{
-				if (chain[k] == winnerStart)
+				std::size_t winnerStart = (2 * pairIdx + 1) * groupSize;
+				bound = 0;
+				for (std::size_t k = 0; k < chain.size(); ++k)
 				{
-					bound = k;
-					break;
+					if (chain[k] == winnerStart)
+					{
+						bound = k;
+						break;
+					}
 				}
 			}
 
@@ -145,24 +152,7 @@ namespace
 			chain.insert(chain.begin() + static_cast<long>(lo), pendStart);
 		}
 
-		// [SECTION 5] Insert straggler group (if present)
-		if (hasStraggler)
-		{
-			std::size_t stragglerStart = pairCount * 2 * groupSize;
-			int value = seq[stragglerStart + groupSize - 1];
-			std::size_t lo = 0, hi = chain.size();
-			while (lo < hi)
-			{
-				std::size_t mid = lo + (hi - lo) / 2;
-				if (seq[chain[mid] + groupSize - 1] < value)
-					lo = mid + 1;
-				else
-					hi = mid;
-			}
-			chain.insert(chain.begin() + static_cast<long>(lo), stragglerStart);
-		}
-
-		// [SECTION 6] Materialize chain order into current segment
+		// [SECTION 5] Materialize chain order into current segment
 		std::vector<int> tmp(seq.begin(),
 							 seq.begin() + static_cast<long>(elemCount));
 		for (std::size_t i = 0; i < chain.size(); ++i)
@@ -210,9 +200,11 @@ namespace
 		std::deque<std::size_t> pend;
 		for (std::size_t i = 1; i < pairCount; ++i)
 			pend.push_back(2 * i * groupSize);
+		if (hasStraggler)
+			pend.push_back(pairCount * 2 * groupSize);
 
 		std::deque<std::size_t> insertionOrder;
-		buildJacobsthalInsertionOrderDeque(pairCount, insertionOrder);
+		buildJacobsthalInsertionOrderDeque(pairCount + (hasStraggler ? 1 : 0), insertionOrder);
 
 		// [SECTION 4] Insert pending losers with bounded binary search
 		for (std::size_t j = 0; j < insertionOrder.size(); ++j)
@@ -221,14 +213,19 @@ namespace
 			std::size_t pendStart = pend[pairIdx - 1];
 			int value = seq[pendStart + groupSize - 1];
 
-			std::size_t winnerStart = (2 * pairIdx + 1) * groupSize;
-			std::size_t bound = 0;
-			for (std::size_t k = 0; k < chain.size(); ++k)
+			bool isStragglerPair = hasStraggler && pairIdx == pairCount;
+			std::size_t bound = chain.size();
+			if (!isStragglerPair)
 			{
-				if (chain[k] == winnerStart)
+				std::size_t winnerStart = (2 * pairIdx + 1) * groupSize;
+				bound = 0;
+				for (std::size_t k = 0; k < chain.size(); ++k)
 				{
-					bound = k;
-					break;
+					if (chain[k] == winnerStart)
+					{
+						bound = k;
+						break;
+					}
 				}
 			}
 
@@ -244,24 +241,7 @@ namespace
 			chain.insert(chain.begin() + static_cast<long>(lo), pendStart);
 		}
 
-		// [SECTION 5] Insert straggler group (if present)
-		if (hasStraggler)
-		{
-			std::size_t stragglerStart = pairCount * 2 * groupSize;
-			int value = seq[stragglerStart + groupSize - 1];
-			std::size_t lo = 0, hi = chain.size();
-			while (lo < hi)
-			{
-				std::size_t mid = lo + (hi - lo) / 2;
-				if (seq[chain[mid] + groupSize - 1] < value)
-					lo = mid + 1;
-				else
-					hi = mid;
-			}
-			chain.insert(chain.begin() + static_cast<long>(lo), stragglerStart);
-		}
-
-		// [SECTION 6] Materialize chain order into current segment
+		// [SECTION 5] Materialize chain order into current segment
 		std::deque<int> tmp(seq.begin(),
 						   seq.begin() + static_cast<long>(elemCount));
 		for (std::size_t i = 0; i < chain.size(); ++i)
