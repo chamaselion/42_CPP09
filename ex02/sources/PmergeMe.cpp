@@ -1,11 +1,137 @@
 #include "PmergeMe.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <climits>
+#include <ctime>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
 #include <stdexcept>
+#include <utility>
+
+namespace
+{
+	void buildJacobsthalInsertionOrder(std::size_t pairCount, std::vector<std::size_t> &order)
+	{
+		order.clear();
+		if (pairCount <= 1)
+			return;
+
+		std::size_t processed = 1;
+		std::size_t jacobPrev = 1;
+		std::size_t jacobCurr = 3;
+
+		while (processed < pairCount)
+		{
+			std::size_t blockEnd = jacobCurr;
+			if (blockEnd > pairCount)
+				blockEnd = pairCount;
+
+			for (std::size_t i = blockEnd; i > processed; --i)
+				order.push_back(i - 1);
+
+			processed = jacobCurr;
+			std::size_t jacobNext = jacobCurr + 2 * jacobPrev;
+			jacobPrev = jacobCurr;
+			jacobCurr = jacobNext;
+		}
+	}
+
+	void fordJohnsonRecurse(std::vector<int> &seq,
+							std::size_t elemCount,
+							std::size_t groupSize)
+	{
+		std::size_t groupCount = elemCount / groupSize;
+		if (groupCount < 2)
+			return;
+
+		std::size_t pairCount = groupCount / 2;
+		bool hasStraggler = (groupCount % 2 != 0);
+
+		for (std::size_t i = 0; i < pairCount; ++i)
+		{
+			std::size_t left  = 2 * i * groupSize;
+			std::size_t right = (2 * i + 1) * groupSize;
+			if (seq[left + groupSize - 1] > seq[right + groupSize - 1])
+			{
+				for (std::size_t j = 0; j < groupSize; ++j)
+					std::swap(seq[left + j], seq[right + j]);
+			}
+		}
+
+		fordJohnsonRecurse(seq, pairCount * 2 * groupSize, groupSize * 2);
+
+		std::vector<std::size_t> chain;
+		chain.reserve(groupCount);
+		chain.push_back(0);
+		for (std::size_t i = 0; i < pairCount; ++i)
+			chain.push_back((2 * i + 1) * groupSize);
+
+		std::vector<std::size_t> pend;
+		pend.reserve(pairCount);
+		for (std::size_t i = 1; i < pairCount; ++i)
+			pend.push_back(2 * i * groupSize);
+
+		std::vector<std::size_t> insertionOrder;
+		buildJacobsthalInsertionOrder(pairCount, insertionOrder);
+
+		for (std::size_t j = 0; j < insertionOrder.size(); ++j)
+		{
+			std::size_t pairIdx   = insertionOrder[j];
+			std::size_t pendStart = pend[pairIdx - 1];
+			int value = seq[pendStart + groupSize - 1];
+
+			std::size_t winnerStart = (2 * pairIdx + 1) * groupSize;
+			std::size_t bound = 0;
+			for (std::size_t k = 0; k < chain.size(); ++k)
+			{
+				if (chain[k] == winnerStart)
+				{
+					bound = k;
+					break;
+				}
+			}
+
+			std::size_t lo = 0, hi = bound;
+			while (lo < hi)
+			{
+				std::size_t mid = lo + (hi - lo) / 2;
+				if (seq[chain[mid] + groupSize - 1] < value)
+					lo = mid + 1;
+				else
+					hi = mid;
+			}
+			chain.insert(chain.begin() + static_cast<long>(lo), pendStart);
+		}
+
+		if (hasStraggler)
+		{
+			std::size_t stragglerStart = pairCount * 2 * groupSize;
+			int value = seq[stragglerStart + groupSize - 1];
+			std::size_t lo = 0, hi = chain.size();
+			while (lo < hi)
+			{
+				std::size_t mid = lo + (hi - lo) / 2;
+				if (seq[chain[mid] + groupSize - 1] < value)
+					lo = mid + 1;
+				else
+					hi = mid;
+			}
+			chain.insert(chain.begin() + static_cast<long>(lo), stragglerStart);
+		}
+
+		std::vector<int> tmp(seq.begin(),
+							 seq.begin() + static_cast<long>(elemCount));
+		for (std::size_t i = 0; i < chain.size(); ++i)
+		{
+			std::size_t dst = i * groupSize;
+			std::size_t src = chain[i];
+			for (std::size_t j = 0; j < groupSize; ++j)
+				seq[dst + j] = tmp[src + j];
+		}
+	}
+}
 
 PmergeMe::PmergeMe() {}
 
@@ -61,11 +187,11 @@ std::vector<int> PmergeMe::parseArgs(int argc, char **argv)
 
 void PmergeMe::printSequence(const std::vector<int> &sequence)
 {
-	for (std::size_t i = 0; i < sequence.size(); ++i)
+	for (std::vector<int>::const_iterator it = sequence.begin(); it != sequence.end(); ++it)
 	{
-		std::cout << sequence[i];
-		if (i + 1 < sequence.size())
+		if (it != sequence.begin())
 			std::cout << ' ';
+		std::cout << *it;
 	}
 	std::cout << std::endl;
 }
@@ -74,53 +200,7 @@ void PmergeMe::fordJohnsonSort(std::vector<int> &sequence)
 {
 	if (sequence.size() <= 1)
 		return;
-	if (sequence.size() == 2)
-	{
-		if (sequence[0] > sequence[1])
-			std::swap(sequence[0], sequence[1]);
-		return;
-	}
-
-	std::vector<int> larger;
-	std::vector<int> smaller;
-	larger.reserve((sequence.size() + 1) / 2);
-	smaller.reserve(sequence.size() / 2);
-
-	std::size_t i = 0;
-	for (; i + 1 < sequence.size(); i += 2)
-	{
-		int a = sequence[i];
-		int b = sequence[i + 1];
-		if (a > b)
-			std::swap(a, b);
-		smaller.push_back(a);
-		larger.push_back(b);
-	}
-
-	bool hasLeftover = (i < sequence.size());
-	int leftover = 0;
-	if (hasLeftover)
-		leftover = sequence[i];
-
-	fordJohnsonSort(larger);
-
-	std::vector<int> mainChain;
-	mainChain.reserve(sequence.size());
-	mainChain.insert(mainChain.end(), larger.begin(), larger.end());
-
-	for (std::size_t j = 0; j < smaller.size(); ++j)
-	{
-		std::vector<int>::iterator pos = std::lower_bound(mainChain.begin(), mainChain.end(), smaller[j]);
-		mainChain.insert(pos, smaller[j]);
-	}
-
-	if (hasLeftover)
-	{
-		std::vector<int>::iterator pos = std::lower_bound(mainChain.begin(), mainChain.end(), leftover);
-		mainChain.insert(pos, leftover);
-	}
-
-	sequence.swap(mainChain);
+	fordJohnsonRecurse(sequence, sequence.size(), 1);
 }
 
 void PmergeMe::run(int argc, char **argv)
@@ -131,8 +211,19 @@ void PmergeMe::run(int argc, char **argv)
 	std::cout << "Before: ";
 	printSequence(original);
 
+	std::clock_t startTime = std::clock();
 	fordJohnsonSort(sequence);
+	std::clock_t endTime = std::clock();
+
+	double elapsedMicroseconds = 0.0;
+	if (endTime >= startTime)
+		elapsedMicroseconds =
+			(static_cast<double>(endTime - startTime) * 1000000.0) /
+			static_cast<double>(CLOCKS_PER_SEC);
 
 	std::cout << "After:  ";
 	printSequence(sequence);
+	std::cout << "Time to process a range of " << sequence.size()
+			  << " elements with std::vector : "
+			  << elapsedMicroseconds << " us" << std::endl;
 }
